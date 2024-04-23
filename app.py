@@ -1,4 +1,4 @@
-from openai import OpenAI
+from openai import AzureOpenAI
 import streamlit as st
 from dotenv import load_dotenv
 import os
@@ -10,11 +10,15 @@ st.title("Streamlit Chatbot Interface")
 
 USER_AVATAR = "👤"
 BOT_AVATAR = "🤖"
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = AzureOpenAI(
+    api_key=os.getenv('AZURE_OPENAI_API_KEY'),  
+    api_version="2024-02-01",
+    azure_endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
+    )
 
 # Ensure openai_model is initialized in session state
 if "openai_model" not in st.session_state:
-    st.session_state["openai_model"] = "gpt-3.5-turbo"
+    st.session_state["openai_model"] = os.getenv('AZURE_OPENAI_MODEL')
 
 
 # Load chat history from shelve file
@@ -59,7 +63,9 @@ if prompt := st.chat_input("How can I help?"):
             messages=st.session_state["messages"],
             stream=True,
         ):
-            full_response += response.choices[0].delta.content or ""
+            if response.choices:  
+                full_response += response.choices[0].delta.content or ""  
+            
             message_placeholder.markdown(full_response + "|")
         message_placeholder.markdown(full_response)
     st.session_state.messages.append({"role": "assistant", "content": full_response})
