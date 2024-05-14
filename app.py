@@ -1,3 +1,4 @@
+import uuid
 from openai import AzureOpenAI
 import streamlit as st
 from dotenv import load_dotenv
@@ -20,28 +21,66 @@ client = AzureOpenAI(
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = os.getenv('AZURE_OPENAI_MODEL')
 
+# Load chat history from shelve file for the current session  
+def load_chat_history():  
+    session_id = st.session_state.get("current_session_id", None)  
+    if session_id:  
+        with shelve.open("chat_history") as db:  
+            return db.get(session_id, [])  
+    return []  
 
-# Load chat history from shelve file
-def load_chat_history():
+
+
+# Save chat history to shelve file for the current session  
+def save_chat_history(messages):  
+    session_id = st.session_state.get("current_session_id", None)  
+    if session_id:  
+        with shelve.open("chat_history") as db:  
+            db[session_id] = messages  
+
+# New chat session to shelve file
+def new_chat_session():
+    # Generate a unique session ID
+    session_id = str(uuid.uuid4())
+    print(f"New Chat Session ID: {session_id}")
+
+    # Initialize an empty chat history for the new session in the shelve file
     with shelve.open("chat_history") as db:
-        return db.get("messages", [])
-
-
-# Save chat history to shelve file
-def save_chat_history(messages):
-    with shelve.open("chat_history") as db:
-        db["messages"] = messages
-
+        db[session_id] = []
+        
+    st.session_state["current_session_id"] = session_id  # Store the current session ID  
+    
+    print("New Chat")  
 
 # Initialize or load chat history
 if "messages" not in st.session_state:
     st.session_state.messages = load_chat_history()
 
+# Lists all existing sessions
+def get_all_session_ids():  
+    with shelve.open("chat_history") as db:  
+        return list(db.keys()) 
+
 # Sidebar with a button to delete chat history
 with st.sidebar:
-    if st.button("Delete Chat History"):
+    if st.button("New Chat"):
         st.session_state.messages = []
-        save_chat_history([])
+        new_chat_session()
+
+    if st.button("Delete Chat History"):  
+        # Ensure deletion only affects the current session's history  
+        session_id = st.session_state.get("current_session_id", None)  
+        if session_id:  
+            with shelve.open("chat_history") as db:  
+                del db[session_id]  # Delete the current session's chat history  
+            st.session_state.messages = []  
+        
+    # Display a list of available sessions  
+    session_ids = get_all_session_ids()  
+    selected_session_id = st.selectbox("Available Sessions", session_ids, key="selected_session_id")  
+    st.session_state["current_session_id"] = selected_session_id  
+    st.session_state.messages = load_chat_history()  
+  
 
 # Display chat messages
 for message in st.session_state.messages:

@@ -91,3 +91,4 @@ target/
 .db
 /data
 chat_history*
+/chats-bkp
