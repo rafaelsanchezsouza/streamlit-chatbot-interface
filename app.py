@@ -1,4 +1,5 @@
 import uuid
+import random
 from openai import AzureOpenAI
 import streamlit as st
 from dotenv import load_dotenv
@@ -8,6 +9,10 @@ import shelve
 load_dotenv()
 
 st.title("Streamlit Chatbot Interface")
+
+# Example lists of words to use for generating session names  
+adjectives = ['Ancient', 'Mysterious', 'Silent', 'Eternal', 'Golden', 'Hidden', 'Forgotten', 'Lost', 'Majestic', 'Mythic']  
+nouns = ['Forest', 'Ocean', 'Mountain', 'River', 'Sky', 'Flame', 'Star', 'Shadow', 'Light', 'Stone']  
 
 USER_AVATAR = "👤"
 BOT_AVATAR = "🤖"
@@ -28,8 +33,9 @@ def load_chat_history():
         with shelve.open("chat_history") as db:  
             return db.get(session_id, [])  
     return []  
-
-
+  
+def generate_session_name():  
+    return random.choice(adjectives) + random.choice(nouns) + str(random.randint(100, 999))  
 
 # Save chat history to shelve file for the current session  
 def save_chat_history(messages):  
@@ -42,7 +48,8 @@ def save_chat_history(messages):
 def new_chat_session():
     # Generate a unique session ID
     session_id = str(uuid.uuid4())
-    print(f"New Chat Session ID: {session_id}")
+    session_name = generate_session_name()  # Assumes you have the generate_session_name function defined  
+    print(f"New Chat Session: {session_name} (ID: {session_id})") 
 
     # Initialize an empty chat history for the new session in the shelve file
     with shelve.open("chat_history") as db:
