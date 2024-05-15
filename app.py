@@ -29,6 +29,11 @@ with st.sidebar:
         st.session_state["current_session_id"] = st.session_state.messages = []
         models.new_chat_session()
 
+    if st.button("Rename Chat"):
+        old_session_id = st.session_state["current_session_id"]  
+        new_session_id = models.change_session_id(old_session_id, client, st, settings)  
+        st.session_state["current_session_id"] = new_session_id 
+
     if st.button("Delete Chat History"):  
         # Ensure deletion only affects the current session's history  
         models.delete_chat_history(st.session_state["current_session_id"]) 

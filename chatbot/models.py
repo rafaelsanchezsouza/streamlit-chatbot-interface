@@ -1,5 +1,6 @@
 import shelve  
 import uuid  
+from chatbot import utils 
   
 # Load chat history from shelve file for the current session  
 def load_chat_history(session_id):  
@@ -34,3 +35,19 @@ def delete_chat_history(session_id):
 def get_all_session_ids():  
     with shelve.open("chat_history") as db:  
         return list(db.keys()) 
+
+def change_session_id(old_session_id, client, st, settings):  
+    # Generate a new unique session ID  
+    new_session_id = utils.generate_smart_session_name(client, st, settings);  
+      
+    with shelve.open("chat_history") as db:  
+        # Ensure the old session exists  
+        if old_session_id in db:  
+            # Copy the data to a new session ID  
+            db[new_session_id] = db[old_session_id]  
+            # Delete the old session  
+            del db[old_session_id]  
+        else:  
+            print("Session not found.")  
+      
+    return new_session_id 
