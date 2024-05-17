@@ -27,7 +27,9 @@ st.session_state.messages = models.load_chat_history(st.session_state["current_s
 with st.sidebar:
     if st.button("New Chat"):
         st.session_state["current_session_id"] = st.session_state.messages = []
-        models.new_chat_session()
+        new_session_id = models.new_chat_session()
+        st.session_state["current_session_id"] = new_session_id
+        st.session_state.messages = models.load_chat_history(new_session_id)  
 
     if st.button("Rename Chat"):
         old_session_id = st.session_state["current_session_id"]  
@@ -40,10 +42,14 @@ with st.sidebar:
         
     # Display a list of available sessions  
     session_ids = models.get_all_session_ids()  
-    selected_session_id = st.selectbox("Available Sessions", session_ids, key="selected_session_id")  
+    new_session_id = st.session_state["current_session_id"]
+
+    default_index = session_ids.index(new_session_id) if new_session_id in session_ids else 0
+
+    selected_session_id = st.selectbox("Available Sessions", session_ids, index=default_index, key="selected_session_id") 
+
     st.session_state["current_session_id"] = selected_session_id  
-    st.session_state.messages = models.load_chat_history(selected_session_id)  
-  
+    st.session_state.messages = models.load_chat_history(selected_session_id)    
 
 # Display chat messages
 for message in st.session_state.messages:
