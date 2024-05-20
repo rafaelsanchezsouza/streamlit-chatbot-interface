@@ -48,7 +48,9 @@ with st.sidebar:
     session_ids = database_service.get_all_session_ids()  
     new_session_id = st.session_state["current_session_id"]
 
-    default_index = session_ids.index(new_session_id) if new_session_id in session_ids else 0
+    last_index = len(session_ids) - 1  
+
+    default_index = session_ids.index(new_session_id) if new_session_id in session_ids else last_index
 
     selected_session_id = st.selectbox("Available Sessions", session_ids, index=default_index, key="selected_session_id") 
 
