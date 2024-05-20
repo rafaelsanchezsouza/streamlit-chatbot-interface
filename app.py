@@ -1,5 +1,5 @@
 import streamlit as st
-from chatbot.factories import LLMFactory, DatabaseFactory
+from chatbot.factories import LLMFactory, DatabaseFactory, FileSystemFactory
 from chatbot import utils
 from config import environment
 
@@ -11,6 +11,7 @@ BOT_AVATAR = "🤖"
 # Initialize AzureOpenAI client  
 llm_service = LLMFactory.get_llm_service(environment.settings.LLM_API_TYPE)
 database_service = DatabaseFactory.get_database_service(environment.settings.DATABASE_TYPE)
+file_service = FileSystemFactory.get_file_system("local")
 
 # Ensure openai_model is initialized in session state
 if "current_session_id" not in st.session_state:  
@@ -32,14 +33,16 @@ with st.sidebar:
         # Generate a new unique session ID  
         new_session_id = utils.generate_smart_session_name(llm_service, st);  
         old_session_id = st.session_state["current_session_id"]  
-        print(f"New Session Id: {new_session_id}")
-        print(f"Old Session Id: {old_session_id}")
         new_session_id = database_service.change_session_id(old_session_id, new_session_id)  
         st.session_state["current_session_id"] = new_session_id 
 
     if st.button("Delete Chat History"):  
         # Ensure deletion only affects the current session's history  
         database_service.delete_chat_history(st.session_state["current_session_id"]) 
+
+    if st.button("Read File Structure"):
+        file_structure = file_service.read_directory_structure('.')
+        st.json(file_structure)
         
     # Display a list of available sessions  
     session_ids = database_service.get_all_session_ids()  

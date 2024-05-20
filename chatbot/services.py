@@ -1,8 +1,10 @@
 import shelve
+import os
 import uuid
 from openai import AzureOpenAI
-from chatbot.interfaces import LLMService, DatabaseService
+from chatbot.interfaces import LLMService, DatabaseService, FileSystem
 from config import environment
+
 
 class OpenAILLMService(LLMService):
     def __init__(self, api_key, endpoint):
@@ -50,3 +52,19 @@ class ShelveDatabaseService(DatabaseService):
                 print("Session not found.")  
         
         return new_session_id
+    
+class LocalFileSystem(FileSystem):
+    def read_directory_structure(self, path: str) -> dict:
+        directory_structure = {}
+        for root, dirs, files in os.walk(path):
+            # Split the root into parts to create a nested dictionary
+            parts = root.split(os.sep)
+            current_level = directory_structure
+            for part in parts:
+                if part not in current_level:
+                    current_level[part] = {}
+                current_level = current_level[part]
+            for file in files:
+                current_level[file] = None
+        return directory_structure
+

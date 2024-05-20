@@ -1,4 +1,4 @@
-from chatbot.services import OpenAILLMService, ShelveDatabaseService
+from chatbot.services import OpenAILLMService, ShelveDatabaseService, LocalFileSystem
 from chatbot.interfaces import LLMService, DatabaseService
 from config import environment
 
@@ -15,3 +15,10 @@ class DatabaseFactory:
         if db_type == "shelve":
             return ShelveDatabaseService()
         # Add more database services as needed
+
+class FileSystemFactory:
+    @staticmethod
+    def get_file_system(file_system_type: str):
+        if file_system_type == "local":
+            return LocalFileSystem()
+        # Add other implementations as needed

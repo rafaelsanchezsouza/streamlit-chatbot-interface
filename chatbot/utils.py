@@ -1,4 +1,5 @@
 import random  
+import os
   
 # Example lists of words to use for generating session names  
 adjectives = ['Ancient', 'Mysterious', 'Silent', 'Eternal', 'Golden', 'Hidden', 'Forgotten', 'Lost', 'Majestic', 'Mythic']  
@@ -20,3 +21,12 @@ def generate_smart_session_name(llm_service, st):
       
     return full_response
     
+def get_file_structure(root_dir):
+    file_structure = {}
+    for dirpath, dirnames, filenames in os.walk(root_dir):
+        relative_path = os.path.relpath(dirpath, root_dir)
+        file_structure[relative_path] = {
+            'directories': dirnames,
+            'files': filenames
+        }
+    return file_structure

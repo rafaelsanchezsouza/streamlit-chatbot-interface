@@ -29,3 +29,8 @@ class DatabaseService(ABC):
     @abstractmethod
     def change_session_id(self, old_session_id, new_session_id):
         pass
+
+class FileSystem(ABC):
+    @abstractmethod
+    def read_directory_structure(self, path: str) -> dict:
+        pass
