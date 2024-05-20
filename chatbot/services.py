@@ -2,6 +2,7 @@ import shelve
 import os
 import uuid
 import json
+import time
 from openai import AzureOpenAI
 from chatbot.interfaces import LLMService, DatabaseService, FileSystem
 from config import environment
@@ -73,12 +74,16 @@ class LocalFileSystem(FileSystem):
         
         return ignore_patterns
 
-    def is_ignored(self, path: str, ignore_patterns: List[str], root: str) -> bool:
-        relative_path = os.path.relpath(path, root)
-        for pattern in ignore_patterns:
-            if fnmatch(relative_path, pattern) or fnmatch(path, pattern):
-                return True
-        return False
+    def is_ignored(self, path: str, ignore_patterns: List[str], root: str) -> bool:  
+        # Check if '.git' is part of the path, effectively ignoring it and its contents  
+        if '.git' in path.split(os.sep):  
+            return True  
+  
+        relative_path = os.path.relpath(path, root)  
+        for pattern in ignore_patterns:  
+            if fnmatch(relative_path, pattern) or fnmatch(path, pattern):  
+                return True  
+        return False 
 
     def read_directory_structure(self, path: str) -> dict:
         directory_structure = {}
@@ -102,3 +107,23 @@ class LocalFileSystem(FileSystem):
                 current_level[file] = None
         
         return json.dumps(directory_structure, ensure_ascii=True, indent=5, sort_keys=True)
+    
+    def get_files_modified_in_last_24_hours(self, directory: str) -> List[str]:
+        now = time.time()
+        cutoff_time = now - 24 * 60 * 60  # 24 hours in seconds
+        ignore_patterns = self.read_gitignore(directory)
+        ignore_patterns.append('.git')  # Always ignore .git directory
+
+        changed_files = []
+
+        for root, _, files in os.walk(directory):
+            for file in files:
+                file_path = os.path.join(root, file)
+                relative_path = os.path.relpath(file_path, directory)
+                if self.is_ignored(relative_path, ignore_patterns, directory):
+                    continue
+                file_mtime = os.path.getmtime(file_path)
+                if file_mtime > cutoff_time:
+                    changed_files.append(file_path)
+
+        return changed_files

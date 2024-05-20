@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 from chatbot.factories import LLMFactory, DatabaseFactory, FileSystemFactory
 from chatbot import utils
@@ -50,6 +51,16 @@ with st.sidebar:
         # st.json(file_structure) # DEBUG only
     else: 
         st.session_state["file_structure"] = ""
+
+    if st.button("Files Modified in Last 24 Hours"):
+        changed_files = file_service.get_files_modified_in_last_24_hours('.')
+        if changed_files:
+            st.write("Files changed in the last 24 hours:")
+            for file in changed_files:
+                st.write(f"{file}")
+        else:
+            st.write("No files changed in the last 24 hours.")
+
         
     # Display a list of available sessions  
     session_ids = database_service.get_all_session_ids()  
