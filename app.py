@@ -21,6 +21,10 @@ if "current_session_id" not in st.session_state:
 # Load chat history from the current session  
 st.session_state.messages = database_service.load_chat_history(st.session_state["current_session_id"]) 
 
+# Initializes Append File Structure
+if 'append_file_structure' not in st.session_state:
+    st.session_state['append_file_structure'] = False
+
 # Sidebar with Options
 with st.sidebar:
     if st.button("New Chat"):
@@ -40,9 +44,12 @@ with st.sidebar:
         # Ensure deletion only affects the current session's history  
         database_service.delete_chat_history(st.session_state["current_session_id"]) 
 
-    if st.button("Read File Structure"):
-        file_structure = file_service.read_directory_structure('.')
-        st.json(file_structure)
+    if st.checkbox("Append File Structure"):
+        st.session_state["file_structure"] = file_service.read_directory_structure('.')
+        st.session_state['append_file_structure'] = True
+        # st.json(file_structure) # DEBUG only
+    else: 
+        st.session_state["file_structure"] = ""
         
     # Display a list of available sessions  
     session_ids = database_service.get_all_session_ids()  
@@ -65,6 +72,10 @@ for message in st.session_state.messages:
 
 # Main chat interface
 if prompt := st.chat_input("How can I help?"):
+    
+    # includes file struture in prompt
+    prompt = prompt + "\n\n" + st.session_state["file_structure"]
+
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=USER_AVATAR):
         st.markdown(prompt)

@@ -1,6 +1,7 @@
 import shelve
 import os
 import uuid
+import json
 from openai import AzureOpenAI
 from chatbot.interfaces import LLMService, DatabaseService, FileSystem
 from config import environment
@@ -100,4 +101,4 @@ class LocalFileSystem(FileSystem):
             for file in files:
                 current_level[file] = None
         
-        return directory_structure
+        return json.dumps(directory_structure, ensure_ascii=True, indent=5, sort_keys=True)
