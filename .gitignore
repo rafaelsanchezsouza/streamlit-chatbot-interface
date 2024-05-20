@@ -1,12 +1,13 @@
 # Byte-compiled / optimized / DLL files
-__pycache__/
+__pycache__
 *.py[cod]
+*.so
 
 # C extensions
 *.so
 
 # Distribution / packaging
-.Python
+.env
 env/
 build/
 develop-eggs/
@@ -22,10 +23,6 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
@@ -47,48 +44,49 @@ coverage.xml
 *.mo
 *.pot
 
-# Django stuff:
+# Logs and databases
 *.log
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# DotEnv configuration
-.env
-
-# Database
 *.db
 *.rdb
 
-# Pycharm
-.idea
+# Documentation
+docs/_build/
+target/
 
-# VS Code
-.vscode/
+# Jupyter Notebook
+*.ipynb_checkpoints/
+
+# PyCharm
+.idea/
 *.code-workspace
-
-# Spyder
 .spyproject/
 
-# Jupyter NB Checkpoints
-.ipynb_checkpoints/
+# Visual Studio Code
+.vscode/
 
-
-# Mac OS-specific storage files
+# macOS
 .DS_Store
 
-# vim
+# Vim
 *.swp
 *.swo
 
-# Mypy cache
+# MyPy
 .mypy_cache/
 
-# Exlcude the database file
-.db
-/data
+# Environment and config
+.env
+example.env
+
+# Backup and temporary files
 chat_history*
-/chats-bkp
+chats-bkp
+
+# Custom directories and files
+/data
+chat_sessions.json
+
+# Python-specific files and directories
+# Avoid tracking any database files
+*.db
+*.rdb

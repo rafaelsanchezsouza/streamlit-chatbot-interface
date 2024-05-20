@@ -4,7 +4,8 @@ import uuid
 from openai import AzureOpenAI
 from chatbot.interfaces import LLMService, DatabaseService, FileSystem
 from config import environment
-
+from typing import List
+from fnmatch import fnmatch
 
 class OpenAILLMService(LLMService):
     def __init__(self, api_key, endpoint):
@@ -52,13 +53,45 @@ class ShelveDatabaseService(DatabaseService):
                 print("Session not found.")  
         
         return new_session_id
-    
+
 class LocalFileSystem(FileSystem):
+    def read_gitignore(self, path: str) -> List[str]:
+        gitignore_path = os.path.join(path, '.gitignore')
+        if not os.path.exists(gitignore_path):
+            return []
+        
+        with open(gitignore_path, 'r') as file:
+            lines = file.readlines()
+        
+        ignore_patterns = []
+        for line in lines:
+            # Remove comments and trim whitespace
+            clean_line = line.split('#')[0].strip()
+            if clean_line:
+                ignore_patterns.append(clean_line)
+        
+        return ignore_patterns
+
+    def is_ignored(self, path: str, ignore_patterns: List[str], root: str) -> bool:
+        relative_path = os.path.relpath(path, root)
+        for pattern in ignore_patterns:
+            if fnmatch(relative_path, pattern) or fnmatch(path, pattern):
+                return True
+        return False
+
     def read_directory_structure(self, path: str) -> dict:
         directory_structure = {}
+        ignore_patterns = self.read_gitignore(path)
+        ignore_patterns.append('.git')  
+        
         for root, dirs, files in os.walk(path):
+            # Skip ignored directories
+            dirs[:] = [d for d in dirs if not self.is_ignored(os.path.join(root, d), ignore_patterns, path)]
+            # Skip ignored files
+            files = [f for f in files if not self.is_ignored(os.path.join(root, f), ignore_patterns, path)]
+
             # Split the root into parts to create a nested dictionary
-            parts = root.split(os.sep)
+            parts = os.path.relpath(root, path).split(os.sep)
             current_level = directory_structure
             for part in parts:
                 if part not in current_level:
@@ -66,5 +99,5 @@ class LocalFileSystem(FileSystem):
                 current_level = current_level[part]
             for file in files:
                 current_level[file] = None
+        
         return directory_structure
-
