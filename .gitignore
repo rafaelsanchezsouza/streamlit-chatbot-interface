@@ -80,7 +80,6 @@ example.env
 
 # Backup and temporary files
 chat_history*
-chats-bkp
 
 # Custom directories and files
 /data

@@ -58,9 +58,20 @@ with st.sidebar:
             st.write("Files changed in the last 24 hours:")
             for file in changed_files:
                 st.write(f"{file}")
+                # Read and display the content of the file  
+                file_content = file_service.read_file_content(file)  
+                st.text_area("", value=file_content, height=200)  
         else:
             st.write("No files changed in the last 24 hours.")
 
+    if st.button("List All Files"):  
+        all_files = file_service.get_all_files('.')  
+        if all_files:  
+            st.write("All files (excluding .gitignore rules):")  
+            for file in all_files:  
+                st.write(file)  
+        else:  
+            st.write("No files found.")  
         
     # Display a list of available sessions  
     session_ids = database_service.get_all_session_ids()  

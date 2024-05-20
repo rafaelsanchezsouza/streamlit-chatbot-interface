@@ -80,10 +80,21 @@ class LocalFileSystem(FileSystem):
             return True  
   
         relative_path = os.path.relpath(path, root)  
+        path_parts = relative_path.split(os.sep)  
+  
+        # Check each part of the path against the ignore patterns  
+        # This helps in effectively ignoring directories like 'chats-bkp'  
+        for part in path_parts:  
+            for pattern in ignore_patterns:  
+                if fnmatch(part, pattern):  
+                    return True  
+  
+        # Also check the entire relative path against the ignore patterns  
         for pattern in ignore_patterns:  
-            if fnmatch(relative_path, pattern) or fnmatch(path, pattern):  
+            if fnmatch(relative_path, pattern):  
                 return True  
-        return False 
+  
+        return False  
 
     def read_directory_structure(self, path: str) -> dict:
         directory_structure = {}
@@ -127,3 +138,29 @@ class LocalFileSystem(FileSystem):
                     changed_files.append(file_path)
 
         return changed_files
+    
+    def read_file_content(self, file_path: str) -> str:  
+        """Reads and returns the content of the specified file."""  
+        try:  
+            with open(file_path, 'r', encoding='utf-8') as file:  
+                return file.read()  
+        except Exception as e:  
+            # Handle exceptions if you can't read the file  
+            return f"Error reading file {file_path}: {e}"  
+        
+    def get_all_files(self, directory: str) -> List[str]:  
+        """Get all files in the directory that are not ignored by .gitignore."""  
+        ignore_patterns = self.read_gitignore(directory)  
+        ignore_patterns.append('.git')  # Always ignore .git directory  
+  
+        all_files = []  
+  
+        for root, _, files in os.walk(directory):  
+            for file in files:  
+                file_path = os.path.join(root, file)  
+                relative_path = os.path.relpath(file_path, directory)  
+                if self.is_ignored(relative_path, ignore_patterns, directory):  
+                    continue  
+                all_files.append(file_path)  
+  
+        return all_files  
