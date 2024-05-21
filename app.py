@@ -54,9 +54,31 @@ with st.sidebar:
         # Ensure deletion only affects the current session's history  
         database_service.delete_chat_history(st.session_state["current_session_id"]) 
 
+    # Create a two-column layout  
+    col1, col2, col3 = st.columns([2, 1, 1])  # Adjust the ratio as needed  
+    
+    with col1:  # This will contain the text input  
+        folder_path = st.text_input("Working Folder:")  
+    
+    with col2:  # This will contain the button  
+        st.markdown("""<br>""", unsafe_allow_html=True)  
+        if st.button("Confirm"):  
+            if os.path.isdir(folder_path):  
+                with col3:
+                    st.success("Folder found!")  
+                    # You can now work with the folder  
+            else:  
+                with col3:
+                    st.error("Not found.")  
+
     if st.checkbox("Append File Structure"):
-        file_structure = file_service.get_all_files('.')  
         combined_files = ""
+        if os.path.isdir(folder_path):
+            file_structure = file_service.get_all_files(folder_path)  
+            combined_files += f"Root Folder: {folder_path} \n\n"
+        else:
+            file_structure = file_service.get_all_files('.')  
+
         combined_files += "File Structure: \n\n"
         for file in file_structure:
             combined_files += file + "\n\n"
@@ -65,7 +87,9 @@ with st.sidebar:
         st.session_state['append_file_structure'] = True
 
     if st.checkbox("Append Recent Files"):
-        files = file_service.get_files_modified_in_last_24_hours('.') 
+        if os.path.isdir(folder_path):
+            files = file_service.get_files_modified_in_last_24_hours(folder_path) 
+        
         combined_file_contents = ""  # Initialize an empty string to accumulate file contents 
         
         if files:  
@@ -79,7 +103,9 @@ with st.sidebar:
             st.write("No files changed in the last 24 hours.")  
 
     if st.checkbox("Append All Files"):
-        files = file_service.get_all_files('.')  
+        if os.path.isdir(folder_path):
+            files = file_service.get_all_files(folder_path)  
+            
         combined_file_contents = ""  # Initialize an empty string to accumulate file contents
 
         if files:
