@@ -1,6 +1,6 @@
 ## About Streamlit LLM Chatbot
 
-Streamlit LLM Chatbot brings the power of AI-driven chat interfaces to developers and users, running directly on your machine. This project leverages Streamlit along with the Azure OpenAI service, offering an intuitive interface to interact with AI, while providing options to enhance chats with local project context\u2014such as file structures, recent changes, and more.
+Streamlit LLM Chatbot brings the power of AI-driven chat interfaces to developers and users, running directly on your machine. This project leverages Streamlit along with the Azure OpenAI service, offering an intuitive interface to interact with AI, while providing options to enhance chats with local project context such as file structures, recent changes, and more.
 
 ### Core Features
 - **Chat Session Management**: Create, rename, and delete chat sessions with ease.
