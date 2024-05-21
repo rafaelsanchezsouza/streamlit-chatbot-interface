@@ -37,24 +37,39 @@ st.session_state["project_context"] = ""
 
 # Sidebar with Options
 with st.sidebar:
+
     if st.button("New Chat"):
         st.session_state["current_session_id"] = st.session_state.messages = []
         new_session_id = database_service.new_chat_session()
         st.session_state["current_session_id"] = new_session_id
         st.session_state.messages = database_service.load_chat_history(new_session_id)  
-
-    if st.button("Rename Chat"):
-        # Generate a new unique session ID  
-        new_session_id = utils.generate_smart_session_name(llm_service, st);  
-        old_session_id = st.session_state["current_session_id"]  
-        new_session_id = database_service.change_session_id(old_session_id, new_session_id)  
-        st.session_state["current_session_id"] = new_session_id 
-
+    
     if st.button("Delete Chat History"):  
         # Ensure deletion only affects the current session's history  
         database_service.delete_chat_history(st.session_state["current_session_id"]) 
 
     # Create a two-column layout  
+    rename1, rename2 = st.columns([1, 1])  # Adjust the ratio as needed  
+
+    with rename1:  # This will contain the text input  
+        chat_rename = st.text_input("Chat Name:")  
+
+    with rename2:
+        st.markdown("""<br>""", unsafe_allow_html=True)  
+        if st.button("Rename Chat"):
+            old_session_id = st.session_state["current_session_id"]  
+
+            if chat_rename:
+                new_session_id = chat_rename
+
+            else:
+                # Auto Generate a new unique session ID  
+                new_session_id = utils.generate_smart_session_name(llm_service, st);  
+            
+            new_session_id = database_service.change_session_id(old_session_id, new_session_id)  
+            st.session_state["current_session_id"] = new_session_id 
+    
+    # Create a three-column layout  
     col1, col2, col3 = st.columns([2, 1, 1])  # Adjust the ratio as needed  
     
     with col1:  # This will contain the text input  
