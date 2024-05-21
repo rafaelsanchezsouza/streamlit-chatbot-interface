@@ -55,8 +55,13 @@ with st.sidebar:
         database_service.delete_chat_history(st.session_state["current_session_id"]) 
 
     if st.checkbox("Append File Structure"):
-        file_structure = file_service.read_directory_structure('.')
-        st.session_state["project_context"] = "File Structure:" + "\n\n" + file_structure
+        file_structure = file_service.get_all_files('.')  
+        combined_files = ""
+        combined_files += "File Structure: \n\n"
+        for file in file_structure:
+            combined_files += file + "\n\n"
+
+        st.session_state["project_context"] = combined_files
         st.session_state['append_file_structure'] = True
 
     if st.checkbox("Append Recent Files"):

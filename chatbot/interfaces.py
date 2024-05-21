@@ -32,5 +32,5 @@ class DatabaseService(ABC):
 
 class FileSystem(ABC):
     @abstractmethod
-    def read_directory_structure(self, path: str) -> dict:
+    def get_all_files(self, path: str) -> dict:
         pass

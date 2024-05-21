@@ -95,29 +95,6 @@ class LocalFileSystem(FileSystem):
                 return True  
   
         return False  
-
-    def read_directory_structure(self, path: str) -> dict:
-        directory_structure = {}
-        ignore_patterns = self.read_gitignore(path)
-        ignore_patterns.append('.git')  
-        
-        for root, dirs, files in os.walk(path):
-            # Skip ignored directories
-            dirs[:] = [d for d in dirs if not self.is_ignored(os.path.join(root, d), ignore_patterns, path)]
-            # Skip ignored files
-            files = [f for f in files if not self.is_ignored(os.path.join(root, f), ignore_patterns, path)]
-
-            # Split the root into parts to create a nested dictionary
-            parts = os.path.relpath(root, path).split(os.sep)
-            current_level = directory_structure
-            for part in parts:
-                if part not in current_level:
-                    current_level[part] = {}
-                current_level = current_level[part]
-            for file in files:
-                current_level[file] = None
-        
-        return json.dumps(directory_structure, ensure_ascii=True, indent=5, sort_keys=True)
     
     def get_files_modified_in_last_24_hours(self, directory: str) -> List[str]:
         now = time.time()
