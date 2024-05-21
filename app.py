@@ -26,6 +26,15 @@ st.session_state.messages = database_service.load_chat_history(st.session_state[
 if 'append_file_structure' not in st.session_state:
     st.session_state['append_file_structure'] = False
 
+if 'list_modified_files' not in st.session_state:  
+    st.session_state['list_modified_files'] = False  
+  
+if 'list_all_files' not in st.session_state:  
+    st.session_state['list_all_files'] = False  
+
+st.session_state["project_context"] = ""
+
+
 # Sidebar with Options
 with st.sidebar:
     if st.button("New Chat"):
@@ -46,32 +55,38 @@ with st.sidebar:
         database_service.delete_chat_history(st.session_state["current_session_id"]) 
 
     if st.checkbox("Append File Structure"):
-        st.session_state["file_structure"] = file_service.read_directory_structure('.')
+        file_structure = file_service.read_directory_structure('.')
+        st.session_state["project_context"] = "File Structure:" + "\n\n" + file_structure
         st.session_state['append_file_structure'] = True
-        # st.json(file_structure) # DEBUG only
-    else: 
-        st.session_state["file_structure"] = ""
 
-    if st.button("Files Modified in Last 24 Hours"):
-        changed_files = file_service.get_files_modified_in_last_24_hours('.')
-        if changed_files:
-            st.write("Files changed in the last 24 hours:")
-            for file in changed_files:
-                st.write(f"{file}")
-                # Read and display the content of the file  
+    if st.checkbox("Append Recent Files"):
+        files = file_service.get_files_modified_in_last_24_hours('.') 
+        combined_file_contents = ""  # Initialize an empty string to accumulate file contents 
+        
+        if files:  
+            for file in files:  
                 file_content = file_service.read_file_content(file)  
-                st.text_area("", value=file_content, height=200)  
-        else:
-            st.write("No files changed in the last 24 hours.")
+                # Append this file's content to the combined string, add a delimiter for readability
+                combined_file_contents += f"Content of {file}:\n```\n{file_content}\n```\n\n----\n\n"
 
-    if st.button("List All Files"):  
-        all_files = file_service.get_all_files('.')  
-        if all_files:  
-            st.write("All files (excluding .gitignore rules):")  
-            for file in all_files:  
-                st.write(file)  
+                st.session_state["project_context"] = "Recent Files:" + "\n\n" + combined_file_contents
         else:  
-            st.write("No files found.")  
+            st.write("No files changed in the last 24 hours.")  
+
+    if st.checkbox("Append All Files"):
+        files = file_service.get_all_files('.')  
+        combined_file_contents = ""  # Initialize an empty string to accumulate file contents
+
+        if files:
+            for file in files:
+                file_content = file_service.read_file_content(file)
+                # Append this file's content to the combined string, add a delimiter for readability
+                combined_file_contents += f"Content of {file}:\n```\n{file_content}\n```\n\n----\n\n"
+
+                st.session_state["project_context"] = "Project Files:" + "\n\n" + combined_file_contents
+
+            else:  
+                st.write("No files found.")  
         
     # Display a list of available sessions  
     session_ids = database_service.get_all_session_ids()  
@@ -96,7 +111,7 @@ for message in st.session_state.messages:
 if prompt := st.chat_input("How can I help?"):
     
     # includes file struture in prompt
-    prompt = prompt + "\n\n" + st.session_state["file_structure"]
+    prompt = prompt + "\n\n" + st.session_state["project_context"]
 
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=USER_AVATAR):
