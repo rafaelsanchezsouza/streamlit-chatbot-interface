@@ -1,4 +1,6 @@
-from chatbot.services import OpenAILLMService, ShelveDatabaseService, LocalFileSystem
+from chatbot.services.file_service import LocalFileSystem
+from chatbot.services.database_service import ShelveDatabaseService
+from chatbot.services.llm_service import OpenAILLMService
 from chatbot.interfaces import LLMService, DatabaseService
 from config import environment
 

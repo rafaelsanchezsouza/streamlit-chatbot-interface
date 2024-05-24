@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 class LLMService(ABC):
     @abstractmethod
-    def query(self, messages):
+    def query(self, messages, model):
         pass
 
 class DatabaseService(ABC):
