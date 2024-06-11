@@ -7,5 +7,5 @@ class OpenAILLMService(LLMService):
         self.client = AzureOpenAI(api_key=api_key, api_version="2024-02-01", azure_endpoint=endpoint)
 
     def query(self, messages):
-        for response in self.client.chat.completions.create(model="gpt-4-turbo-0125-preview", messages=messages, stream=True):
+        for response in self.client.chat.completions.create(model="GPT4o_omni", messages=messages, stream=True):
             yield response

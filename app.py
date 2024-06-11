@@ -125,7 +125,9 @@ with st.sidebar:
 
     if st.checkbox("Append All Files"):
         if os.path.isdir(folder_path):
-            files = file_service.get_all_files(folder_path)  
+            files = file_service.get_all_files(folder_path)
+        else:
+            files = []  
             
         combined_file_contents = ""  # Initialize an empty string to accumulate file contents
 
