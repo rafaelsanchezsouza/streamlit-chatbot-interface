@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Settings:
-    AZURE_OPENAI_API_KEY = os.getenv('AZURE_OPENAI_API_KEY')
-    AZURE_OPENAI_ENDPOINT = os.getenv('AZURE_OPENAI_ENDPOINT')
-    AZURE_OPENAI_MODEL = os.getenv('AZURE_OPENAI_MODEL')
-    LLM_API_TYPE = os.getenv('LLM_API_TYPE', 'openai')
+    WEST_AZURE_OPENAI_API_KEY = os.getenv('WEST_AZURE_OPENAI_API_KEY')
+    WEST_AZURE_OPENAI_ENDPOINT = os.getenv('WEST_AZURE_OPENAI_ENDPOINT')
+    EAST_AZURE_OPENAI_API_KEY = os.getenv('EAST_AZURE_OPENAI_API_KEY')
+    EAST_AZURE_OPENAI_ENDPOINT = os.getenv('EAST_AZURE_OPENAI_ENDPOINT')
     DATABASE_TYPE = os.getenv('DATABASE_TYPE', 'shelve')
 
 settings = Settings()

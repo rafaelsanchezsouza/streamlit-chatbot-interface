@@ -6,9 +6,11 @@ from config import environment
 
 class LLMFactory:
     @staticmethod
-    def get_llm_service(api_type: str) -> LLMService:
-        if api_type == "openai":
-            return OpenAILLMService(api_key=environment.settings.AZURE_OPENAI_API_KEY, endpoint=environment.settings.AZURE_OPENAI_ENDPOINT)
+    def get_llm_service(resource: str) -> LLMService:
+        if resource == "east":
+            return OpenAILLMService(api_key=environment.settings.EAST_AZURE_OPENAI_API_KEY, endpoint=environment.settings.EAST_AZURE_OPENAI_ENDPOINT)
+        if resource == "west":
+            return OpenAILLMService(api_key=environment.settings.WEST_AZURE_OPENAI_API_KEY, endpoint=environment.settings.WEST_AZURE_OPENAI_ENDPOINT)
         # Add more LLM services as needed
 
 class DatabaseFactory:

@@ -16,7 +16,7 @@ def generate_smart_session_name(llm_service, st):
     # Assuming 'client.chat.completions.create()' sends the question and gets a response  
     full_response = ""
     llm_model = "gpt-4-turbo-0125-preview"
-    for response in llm_service.query(temp.session_state.messages, llm_model): 
+    for response in llm_service.query(temp.session_state.messages): 
       if response.choices:
           full_response += response.choices[0].delta.content or ""
       

@@ -10,7 +10,6 @@ USER_AVATAR = "👤"
 BOT_AVATAR = "🤖"
 
 # Initialize AzureOpenAI client  
-llm_service = LLMFactory.get_llm_service(environment.settings.LLM_API_TYPE)
 database_service = DatabaseFactory.get_database_service(environment.settings.DATABASE_TYPE)
 file_service = FileSystemFactory.get_file_system("local")
 
@@ -34,9 +33,16 @@ if 'list_all_files' not in st.session_state:
 
 st.session_state["project_context"] = ""
 
+# Initialize Model Options
+llm_model = "gpt-4-turbo-0125-preview"
+resources = ["west", "east"]
+selected_resource = 0
 
 # Sidebar with Options
 with st.sidebar:
+    selected_resource = st.selectbox('Choose Model', resources, index=0, key='selected_resource')
+    llm_service = LLMFactory.get_llm_service(selected_resource)
+
 
     if st.button("New Chat"):
         st.session_state["current_session_id"] = st.session_state.messages = []
