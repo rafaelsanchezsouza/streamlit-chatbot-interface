@@ -4,182 +4,183 @@ from chatbot.factories import LLMFactory, DatabaseFactory, FileSystemFactory
 from chatbot import utils
 from config import environment
 
-st.title("Streamlit Chatbot Interface")
-
 USER_AVATAR = "👤"
 BOT_AVATAR = "🤖"
 
-# Initialize AzureOpenAI client  
-database_service = DatabaseFactory.get_database_service(environment.settings.DATABASE_TYPE)
-file_service = FileSystemFactory.get_file_system("local")
+models = ["o4-mini", "gpt-4.1"]
 
-# Ensure openai_model is initialized in session state
-if "current_session_id" not in st.session_state:  
-    # Generate a new session  
-    st.session_state["current_session_id"] = database_service.new_chat_session()  
-  
-# Load chat history from the current session  
-st.session_state.messages = database_service.load_chat_history(st.session_state["current_session_id"]) 
+def init_session_state(database_service):
+    """Initialize and update Streamlit session state."""
+    if "current_session_id" not in st.session_state:  
+        st.session_state["current_session_id"] = database_service.new_chat_session()
+    if "messages" not in st.session_state:
+        st.session_state["messages"] = database_service.load_chat_history(st.session_state["current_session_id"])
+    if 'append_file_structure' not in st.session_state:
+        st.session_state['append_file_structure'] = False
+    if 'list_modified_files' not in st.session_state:  
+        st.session_state['list_modified_files'] = False  
+    if 'list_all_files' not in st.session_state:  
+        st.session_state['list_all_files'] = False  
+    if 'project_context' not in st.session_state:
+        st.session_state["project_context"] = ""
+    if "folder_path" not in st.session_state:
+        st.session_state["folder_path"] = ""
 
-# Initializes Append File Structure
-if 'append_file_structure' not in st.session_state:
-    st.session_state['append_file_structure'] = False
+def show_sidebar(database_service, file_service):
+    llm_service = get_llm_service()
+    with st.sidebar:
+        st.header("Chat")
+        selected_model = st.selectbox('Choose Model', models, index=0, key='selected_model')
 
-if 'list_modified_files' not in st.session_state:  
-    st.session_state['list_modified_files'] = False  
-  
-if 'list_all_files' not in st.session_state:  
-    st.session_state['list_all_files'] = False  
+        if st.button("New Chat"):
+            new_session_id = database_service.new_chat_session()
+            st.session_state["current_session_id"] = new_session_id
+            st.session_state["messages"] = database_service.load_chat_history(new_session_id)  
 
-st.session_state["project_context"] = ""
+        if st.button("Delete Chat History"):  
+            database_service.delete_chat_history(st.session_state["current_session_id"]) 
 
-# Initialize Model Options
-resources = ["o4-mini", "gpt-4.1"]
-selected_resource = 0
+        # Two columns for renaming chat
+        rename1, rename2 = st.columns ([1,1])  
+        with rename1:  
+            chat_rename = st.text_input("Chat Name:")  
+        with rename2:
+            st.markdown("""<br>""", unsafe_allow_html=True)
+            if st.button("Rename Chat"):
+                old_session_id = st.session_state["current_session_id"]  
+                new_session_id = chat_rename or utils.generate_smart_session_name(llm_service, st)
+                new_session_id = database_service.change_session_id(old_session_id, new_session_id)  
+                st.session_state["current_session_id"] = new_session_id 
 
-# Sidebar with Options
-with st.sidebar:
-    selected_resource = st.selectbox('Choose Model', resources, index=0, key='selected_resource')
-    llm_service = LLMFactory.get_llm_service(selected_resource)
+        # Working folder selection
+        folder_input, confirm_btn, msg_col = st.columns([2,1,1])
+        with folder_input:
+            folder_path = st.text_input("Working Folder:", value=st.session_state['folder_path'])
+            st.session_state['folder_path'] = folder_path
+        with confirm_btn:
+            st.markdown("""<br>""", unsafe_allow_html=True)
+            if st.button("Confirm"):  
+                if os.path.isdir(folder_path):  
+                    with msg_col:
+                        st.success("Folder found!")  
+                else:  
+                    with msg_col:
+                        st.error("Not found.")
 
+        # Project/file-related toggles
+        if st.checkbox("Append File Structure"):
+            append_file_structure(folder_path, file_service)
+        if st.checkbox("Append Recent Files"):
+            append_recent_files(folder_path, file_service)
+        if st.checkbox("Append All Files"):
+            append_all_files(folder_path, file_service)
 
-    if st.button("New Chat"):
-        st.session_state["current_session_id"] = st.session_state.messages = []
-        new_session_id = database_service.new_chat_session()
-        st.session_state["current_session_id"] = new_session_id
-        st.session_state.messages = database_service.load_chat_history(new_session_id)  
-    
-    if st.button("Delete Chat History"):  
-        # Ensure deletion only affects the current session's history  
-        database_service.delete_chat_history(st.session_state["current_session_id"]) 
+        # Session selection
+        session_ids = database_service.get_all_session_ids()  
+        current_id = st.session_state["current_session_id"]
+        last_index = len(session_ids) - 1
+        default_index = session_ids.index(current_id) if current_id in session_ids else last_index
+        selected_session_id = st.selectbox("Available Sessions", session_ids, index=default_index, key="selected_session_id")
+        st.session_state["current_session_id"] = selected_session_id
+        st.session_state["messages"] = database_service.load_chat_history(selected_session_id)
 
-    # Create a two-column layout  
-    rename1, rename2 = st.columns([1, 1])  # Adjust the ratio as needed  
+def append_file_structure(folder_path, file_service):
+    if os.path.isdir(folder_path):
+        file_structure = file_service.get_all_files(folder_path)  
+        root = folder_path
+    else:
+        file_structure = file_service.get_all_files('.')  
+        root = '.'
+    combined_files = f"Root Folder: {root} \n\nFile Structure:\n\n"
+    for file in file_structure:
+        combined_files += file + "\n\n"
+    st.session_state["project_context"] = combined_files
+    st.session_state['append_file_structure'] = True
 
-    with rename1:  # This will contain the text input  
-        chat_rename = st.text_input("Chat Name:")  
+def append_recent_files(folder_path, file_service):
+    if os.path.isdir(folder_path):
+        files = file_service.get_files_modified_in_last_24_hours(folder_path)
+    else:
+        files = []
+    combined = ""
+    if files:
+        for file in files:
+            file_content = file_service.read_file_content(file)
+            combined += f"Content of {file}:\n```\n{file_content}\n```\n\n----\n\n"
+        st.session_state["project_context"] = "Recent Files:\n\n" + combined
+    else:
+        st.write("No files changed in the last 24 hours.")
 
-    with rename2:
-        st.markdown("""<br>""", unsafe_allow_html=True)  
-        if st.button("Rename Chat"):
-            old_session_id = st.session_state["current_session_id"]  
+def append_all_files(folder_path, file_service):
+    if os.path.isdir(folder_path):
+        files = file_service.get_all_files(folder_path)
+    else:
+        files = []
+    combined = ""
+    if files:
+        for file in files:
+            file_content = file_service.read_file_content(file)
+            combined += f"Content of {file}:\n```\n{file_content}\n```\n\n----\n\n"
+        st.session_state["project_context"] = "Project Files:\n\n" + combined
+    else:
+        st.write("No files found.")
 
-            if chat_rename:
-                new_session_id = chat_rename
+def display_chat(messages):
+    for message in messages:
+        avatar = USER_AVATAR if message["role"] == "user" else BOT_AVATAR
+        with st.chat_message(message["role"], avatar=avatar):
+            st.markdown(message["content"])
 
-            else:
-                # Auto Generate a new unique session ID  
-                new_session_id = utils.generate_smart_session_name(llm_service, st);  
-            
-            new_session_id = database_service.change_session_id(old_session_id, new_session_id)  
-            st.session_state["current_session_id"] = new_session_id 
-    
-    # Create a three-column layout  
-    col1, col2, col3 = st.columns([2, 1, 1])  # Adjust the ratio as needed  
-    
-    with col1:  # This will contain the text input  
-        folder_path = st.text_input("Working Folder:")  
-    
-    with col2:  # This will contain the button  
-        st.markdown("""<br>""", unsafe_allow_html=True)  
-        if st.button("Confirm"):  
-            if os.path.isdir(folder_path):  
-                with col3:
-                    st.success("Folder found!")  
-                    # You can now work with the folder  
-            else:  
-                with col3:
-                    st.error("Not found.")  
+def get_llm_service():
+    """Return a cached LLM service, re‑initializing only when
+       st.session_state['selected_model'] changes."""
+    selected = st.session_state.get("selected_model", models[0])
+    print("selected: ")
+    print(selected)
+    # if we never made one, or the user just picked a new model:
+    if (
+       "llm_service" not in st.session_state
+       or st.session_state.get("llm_model") != selected
+    ):
+        svc = LLMFactory.get_llm_service(selected)
+        st.session_state["llm_service"] = svc
+        st.session_state["llm_model"]   = selected
+    return st.session_state["llm_service"]
 
-    if st.checkbox("Append File Structure"):
-        combined_files = ""
-        if os.path.isdir(folder_path):
-            file_structure = file_service.get_all_files(folder_path)  
-            combined_files += f"Root Folder: {folder_path} \n\n"
-        else:
-            file_structure = file_service.get_all_files('.')  
+def main():
+    st.title("Streamlit Chatbot Interface")
+    # --- Initialization ---
+    database_service = DatabaseFactory.get_database_service(environment.settings.DATABASE_TYPE)
+    file_service = FileSystemFactory.get_file_system("local")
+    # You could persist LLM service or allow switching, depending on your needs.
+    llm_service = get_llm_service()
+    init_session_state(database_service)
 
-        combined_files += "File Structure: \n\n"
-        for file in file_structure:
-            combined_files += file + "\n\n"
+    # --- Sidebar ---
+    show_sidebar(database_service, file_service)
 
-        st.session_state["project_context"] = combined_files
-        st.session_state['append_file_structure'] = True
+    # --- Chat window & Input ---
+    display_chat(st.session_state["messages"])
 
-    if st.checkbox("Append Recent Files"):
-        if os.path.isdir(folder_path):
-            files = file_service.get_files_modified_in_last_24_hours(folder_path) 
-        
-        combined_file_contents = ""  # Initialize an empty string to accumulate file contents 
-        
-        if files:  
-            for file in files:  
-                file_content = file_service.read_file_content(file)  
-                # Append this file's content to the combined string, add a delimiter for readability
-                combined_file_contents += f"Content of {file}:\n```\n{file_content}\n```\n\n----\n\n"
+    prompt = st.chat_input("How can I help?")
+    if prompt:
+        # Add file/project context
+        chat_input = prompt + "\n\n" + st.session_state.get("project_context", "")
+        st.session_state["messages"].append({"role": "user", "content": chat_input})
+        with st.chat_message("user", avatar=USER_AVATAR):
+            st.markdown(chat_input)
+        with st.chat_message("assistant", avatar=BOT_AVATAR):
+            message_placeholder = st.empty()
+            full_response = ""
+            for response in llm_service.query(st.session_state["messages"]):
+                if response.choices:  
+                    full_response += response.choices[0].delta.content or ""  
+                message_placeholder.markdown(full_response + "|")
+            message_placeholder.markdown(full_response)
+        st.session_state["messages"].append({"role": "assistant", "content": full_response})
 
-                st.session_state["project_context"] = "Recent Files:" + "\n\n" + combined_file_contents
-        else:  
-            st.write("No files changed in the last 24 hours.")  
+    # Save at end
+    database_service.save_chat_history(st.session_state["current_session_id"], st.session_state["messages"])
 
-    if st.checkbox("Append All Files"):
-        if os.path.isdir(folder_path):
-            files = file_service.get_all_files(folder_path)
-        else:
-            files = []  
-            
-        combined_file_contents = ""  # Initialize an empty string to accumulate file contents
-
-        if files:
-            for file in files:
-                file_content = file_service.read_file_content(file)
-                # Append this file's content to the combined string, add a delimiter for readability
-                combined_file_contents += f"Content of {file}:\n```\n{file_content}\n```\n\n----\n\n"
-
-                st.session_state["project_context"] = "Project Files:" + "\n\n" + combined_file_contents
-
-            else:  
-                st.write("No files found.")  
-        
-    # Display a list of available sessions  
-    session_ids = database_service.get_all_session_ids()  
-    new_session_id = st.session_state["current_session_id"]
-
-    last_index = len(session_ids) - 1  
-
-    default_index = session_ids.index(new_session_id) if new_session_id in session_ids else last_index
-
-    selected_session_id = st.selectbox("Available Sessions", session_ids, index=default_index, key="selected_session_id") 
-
-    st.session_state["current_session_id"] = selected_session_id  
-    st.session_state.messages = database_service.load_chat_history(selected_session_id)    
-
-# Display chat messages
-for message in st.session_state.messages:
-    avatar = USER_AVATAR if message["role"] == "user" else BOT_AVATAR
-    with st.chat_message(message["role"], avatar=avatar):
-        st.markdown(message["content"])
-
-# Main chat interface
-if prompt := st.chat_input("How can I help?"):
-    
-    # includes file struture in prompt
-    prompt = prompt + "\n\n" + st.session_state["project_context"]
-
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user", avatar=USER_AVATAR):
-        st.markdown(prompt)
-
-    with st.chat_message("assistant", avatar=BOT_AVATAR):
-        message_placeholder = st.empty()
-        full_response = ""
-        for response in llm_service.query(st.session_state.messages):
-            if response.choices:  
-                full_response += response.choices[0].delta.content or ""  
-            
-            message_placeholder.markdown(full_response + "|")
-        message_placeholder.markdown(full_response)
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
-
-# Save chat history after each interaction
-database_service.save_chat_history(st.session_state["current_session_id"], st.session_state.messages)  
+if __name__ == "__main__":
+    main()
