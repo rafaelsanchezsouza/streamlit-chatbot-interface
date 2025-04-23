@@ -34,8 +34,7 @@ if 'list_all_files' not in st.session_state:
 st.session_state["project_context"] = ""
 
 # Initialize Model Options
-llm_model = "gpt-4o-Global-Standard"
-resources = ["west", "east"]
+resources = ["o4-mini", "gpt-4.1"]
 selected_resource = 0
 
 # Sidebar with Options

@@ -1,5 +1,4 @@
 import os
-import json
 import time
 from chatbot.interfaces import FileSystem
 from typing import List

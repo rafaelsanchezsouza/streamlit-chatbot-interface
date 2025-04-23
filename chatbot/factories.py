@@ -2,15 +2,15 @@ from chatbot.services.file_service import LocalFileSystem
 from chatbot.services.database_service import ShelveDatabaseService
 from chatbot.services.llm_service import OpenAILLMService
 from chatbot.interfaces import LLMService, DatabaseService
-from config import environment
+import os
 
 class LLMFactory:
     @staticmethod
-    def get_llm_service(resource: str) -> LLMService:
-        if resource == "east":
-            return OpenAILLMService(api_key=environment.settings.EAST_AZURE_OPENAI_API_KEY, endpoint=environment.settings.EAST_AZURE_OPENAI_ENDPOINT)
-        if resource == "west":
-            return OpenAILLMService(api_key=environment.settings.WEST_AZURE_OPENAI_API_KEY, endpoint=environment.settings.WEST_AZURE_OPENAI_ENDPOINT)
+    def get_llm_service(model: str) -> LLMService:
+        if model == "o4-mini":
+            return OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"), model=model)
+        if model == "gpt-4.1":
+            return OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"), model=model)
         # Add more LLM services as needed
 
 class DatabaseFactory:
