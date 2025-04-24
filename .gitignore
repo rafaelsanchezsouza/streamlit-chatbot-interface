@@ -89,3 +89,4 @@ chat_sessions.json
 # Avoid tracking any database files
 *.db
 *.rdb
+.venv/

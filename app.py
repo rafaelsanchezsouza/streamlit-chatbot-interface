@@ -68,12 +68,10 @@ def show_sidebar(database_service, file_service):
                         st.error("Not found.")
 
         # Project/file-related toggles
-        if st.checkbox("Append File Structure"):
-            append_file_structure(folder_path, file_service)
-        if st.checkbox("Append Recent Files"):
-            append_recent_files(folder_path, file_service)
-        if st.checkbox("Append All Files"):
-            append_all_files(folder_path, file_service)
+        # Project/file-related toggles
+        st.session_state['append_file_structure'] = st.checkbox("Append File Structure")
+        st.session_state['append_recent_files'] = st.checkbox("Append Recent Files")
+        st.session_state['append_all_files'] = st.checkbox("Append All Files")
 
         # Session selection
         session_ids = database_service.get_all_session_ids()  
@@ -84,20 +82,19 @@ def show_sidebar(database_service, file_service):
         st.session_state["current_session_id"] = selected_session_id
         st.session_state["messages"] = database_service.load_chat_history(selected_session_id)
 
-def append_file_structure(folder_path, file_service):
+def get_file_structure_context(folder_path, file_service):
     if os.path.isdir(folder_path):
-        file_structure = file_service.get_all_files(folder_path)  
+        file_structure = file_service.get_all_files(folder_path)
         root = folder_path
     else:
-        file_structure = file_service.get_all_files('.')  
+        file_structure = file_service.get_all_files('.')
         root = '.'
     combined_files = f"Root Folder: {root} \n\nFile Structure:\n\n"
     for file in file_structure:
         combined_files += file + "\n\n"
-    st.session_state["project_context"] = combined_files
-    st.session_state['append_file_structure'] = True
+    return combined_files
 
-def append_recent_files(folder_path, file_service):
+def get_recent_files_context(folder_path, file_service):
     if os.path.isdir(folder_path):
         files = file_service.get_files_modified_in_last_24_hours(folder_path)
     else:
@@ -106,12 +103,11 @@ def append_recent_files(folder_path, file_service):
     if files:
         for file in files:
             file_content = file_service.read_file_content(file)
-            combined += f"Content of {file}:\n```\n{file_content}\n```\n\n----\n\n"
-        st.session_state["project_context"] = "Recent Files:\n\n" + combined
-    else:
-        st.write("No files changed in the last 24 hours.")
+            combined += f"Content of {file}:\n\n{file_content}\n\n\n----\n\n"
+        return "Recent Files:\n\n" + combined
+    return ""
 
-def append_all_files(folder_path, file_service):
+def get_all_files_context(folder_path, file_service):
     if os.path.isdir(folder_path):
         files = file_service.get_all_files(folder_path)
     else:
@@ -120,10 +116,9 @@ def append_all_files(folder_path, file_service):
     if files:
         for file in files:
             file_content = file_service.read_file_content(file)
-            combined += f"Content of {file}:\n```\n{file_content}\n```\n\n----\n\n"
-        st.session_state["project_context"] = "Project Files:\n\n" + combined
-    else:
-        st.write("No files found.")
+            combined += f"Content of {file}:\n\n{file_content}\n\n\n----\n\n"
+        return "Project Files:\n\n" + combined
+    return ""
 
 def display_chat(messages):
     for message in messages:
@@ -164,8 +159,26 @@ def main():
 
     prompt = st.chat_input("How can I help?")
     if prompt:
-        # Add file/project context
-        chat_input = prompt + "\n\n" + st.session_state.get("project_context", "")
+        # Build project context based on current checkbox states
+        project_context = []
+        folder_path = st.session_state.get('folder_path', '')
+        
+        if st.session_state.get('append_file_structure', False):
+            file_structure = get_file_structure_context(folder_path, file_service)
+            project_context.append(file_structure)
+        
+        if st.session_state.get('append_recent_files', False):
+            recent_files = get_recent_files_context(folder_path, file_service)
+            project_context.append(recent_files)
+        
+        if st.session_state.get('append_all_files', False):
+            all_files = get_all_files_context(folder_path, file_service)
+            project_context.append(all_files)
+        
+        # Combine all context sections
+        combined_context = "\n\n".join(project_context)
+        chat_input = prompt + "\n\n" + combined_context if combined_context else prompt
+        
         st.session_state["messages"].append({"role": "user", "content": chat_input})
         with st.chat_message("user", avatar=USER_AVATAR):
             st.markdown(chat_input)
