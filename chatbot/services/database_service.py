@@ -1,5 +1,5 @@
 import shelve
-import uuid
+from datetime import datetime
 from chatbot.interfaces import DatabaseService
 
 class ShelveDatabaseService(DatabaseService):
@@ -15,9 +15,13 @@ class ShelveDatabaseService(DatabaseService):
                 db[session_id] = messages  
 
     def new_chat_session(self):
-        session_id = str(uuid.uuid4())
+        # e.g. "20240625T143055123456"
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S%f")
+        session_id = timestamp
+
         with shelve.open("chat_history") as db:
-            db[session_id] = []
+            db[session_id] = []   # initialize an empty history list
+
         return session_id
 
     def delete_chat_history(self, session_id):
