@@ -123,11 +123,31 @@ def get_all_files_context(folder_path, file_service):
         return "Project Files:\n\n" + combined
     return ""
 
-def display_chat(messages):
-    for message in messages:
+def display_chat(messages, database_service):
+    """
+    Show each message along with a small delete button.
+    If delete is clicked, remove the message, persist, and rerun.
+    """
+    for idx, message in enumerate(messages):
         avatar = USER_AVATAR if message["role"] == "user" else BOT_AVATAR
+        # each chat bubble can be treated as a little st.container
         with st.chat_message(message["role"], avatar=avatar):
-            st.markdown(message["content"])
+            # two columns: one for the text, one for the delete button
+            col_txt, col_del = st.columns([0.95, 0.05])
+            with col_txt:
+                st.markdown(message["content"])
+            with col_del:
+                btn_key = f"del_{st.session_state["current_session_id"]}_{idx}"
+                if st.button("❌", key=btn_key, ):
+                    # remove from session state
+                    st.session_state["messages"].pop(idx)
+                    # persist immediately
+                    database_service.save_chat_history(
+                        st.session_state["current_session_id"],
+                        st.session_state["messages"]
+                    )
+                    # rerun so UI redraws without that message
+                    st.rerun()
 
 def get_llm_service():
     """Return a cached LLM service, re‑initializing only when
@@ -146,6 +166,27 @@ def get_llm_service():
     return st.session_state["llm_service"]
 
 def main():
+        # Inject CSS to shrink buttons globally (you can scope it if you like)
+    st.markdown(
+        """
+        <style>
+        /* Only style buttons inside a container whose class includes "st-key-del_" */
+        div.stElementContainer[class*="st-key-del_"] button {
+            padding: 0px !important;
+            border: none;
+            font-size: 0rem !important;
+            line-height: 0.5px !important;
+            background: transparent !important;
+            color: #ce885f !important;        
+        }
+        /* Optional—lighter hover effect */
+        div.stElementContainer[class*="st-key-del_"] button:hover {
+            background: rgba(224,0,0,0.1) !important;
+        }
+        </style>
+        """,
+    unsafe_allow_html=True,
+    )
     st.title("Streamlit Chatbot Interface")
     # --- Initialization ---
     database_service = DatabaseFactory.get_database_service(environment.settings.DATABASE_TYPE)
@@ -158,7 +199,7 @@ def main():
     show_sidebar(database_service, file_service)
 
     # --- Chat window & Input ---
-    display_chat(st.session_state["messages"])
+    display_chat(st.session_state["messages"], database_service)
 
     prompt = st.chat_input("How can I help?")
     if prompt:
