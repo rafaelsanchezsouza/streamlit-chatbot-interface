@@ -61,11 +61,12 @@ def show_sidebar(database_service, file_service):
             st.markdown("""<br>""", unsafe_allow_html=True)
             if st.button("Confirm"):  
                 if os.path.isdir(folder_path):  
-                    with msg_col:
-                        st.success("Folder found!")  
+                    st.success("Folder found!")  
+                    database_service.save_session_path(st.session_state["current_session_id"], folder_path)
+                    st.session_state["folder_path"] = folder_path
+
                 else:  
-                    with msg_col:
-                        st.error("Not found.")
+                    st.error("Not found.")
 
         # Project/file-related toggles
         # Project/file-related toggles
@@ -79,8 +80,10 @@ def show_sidebar(database_service, file_service):
         last_index = len(session_ids) - 1
         default_index = session_ids.index(current_id) if current_id in session_ids else last_index
         selected_session_id = st.selectbox("Available Sessions", session_ids, index=default_index, key="selected_session_id")
-        st.session_state["current_session_id"] = selected_session_id
-        st.session_state["messages"] = database_service.load_chat_history(selected_session_id)
+        if selected_session_id != st.session_state["current_session_id"]:
+            st.session_state["current_session_id"] = selected_session_id
+            st.session_state["messages"] = database_service.load_chat_history(selected_session_id)
+            st.session_state["folder_path"] = database_service.load_session_path(selected_session_id)
 
 def get_file_structure_context(folder_path, file_service):
     if os.path.isdir(folder_path):

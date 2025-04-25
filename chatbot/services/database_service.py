@@ -3,16 +3,32 @@ from datetime import datetime
 from chatbot.interfaces import DatabaseService
 
 class ShelveDatabaseService(DatabaseService):
+    def _load_raw(self, session_id):
+        with shelve.open("chat_history") as db:
+            entry = db.get(session_id, [])
+        if isinstance(entry, list):
+            return {"messages": entry, "path": ""}
+        else:
+            return entry  # assume already a dict
+
     def load_chat_history(self, session_id):
-        if session_id:  
-            with shelve.open("chat_history") as db:  
-                return db.get(session_id, [])  
-        return []  
+        return self._load_raw(session_id)["messages"]
+
+    def load_session_path(self, session_id):
+        return self._load_raw(session_id).get("path", "")
 
     def save_chat_history(self, session_id, messages):
-        if session_id:  
-            with shelve.open("chat_history") as db:  
-                db[session_id] = messages  
+        # pull in the old path, in case it’s already been set
+        old = self._load_raw(session_id)
+        new = {"messages": messages, "path": old.get("path","")}
+        with shelve.open("chat_history") as db:
+            db[session_id] = new
+
+    def save_session_path(self, session_id, path):
+        old = self._load_raw(session_id)
+        new = {"messages": old.get("messages",[]), "path": path}
+        with shelve.open("chat_history") as db:
+            db[session_id] = new
 
     def new_chat_session(self):
         # e.g. "20240625T143055123456"
