@@ -3,6 +3,7 @@ import streamlit as st
 from chatbot.factories import LLMFactory, DatabaseFactory, FileSystemFactory
 from chatbot import utils
 from config import environment
+from components.styleguide_tab import render_styleguide_tab
 
 USER_AVATAR = "👤"
 BOT_AVATAR = "🤖"
@@ -187,8 +188,9 @@ def main():
         """,
     unsafe_allow_html=True,
     )
-    st.title("Streamlit Chatbot Interface")
-    # --- Initialization ---
+    
+    tab_chat, tab_style = st.tabs(["Chat", "Style Guide"])
+
     database_service = DatabaseFactory.get_database_service(environment.settings.DATABASE_TYPE)
     file_service = FileSystemFactory.get_file_system("local")
     # You could persist LLM service or allow switching, depending on your needs.
@@ -198,8 +200,9 @@ def main():
     # --- Sidebar ---
     show_sidebar(database_service, file_service)
 
-    # --- Chat window & Input ---
-    display_chat(st.session_state["messages"], database_service)
+    with tab_chat:
+        # --- Chat window & Input ---
+        display_chat(st.session_state["messages"], database_service)
 
     prompt = st.chat_input("How can I help?")
     if prompt:
@@ -236,8 +239,11 @@ def main():
             message_placeholder.markdown(full_response)
         st.session_state["messages"].append({"role": "assistant", "content": full_response})
 
-    # Save at end
-    database_service.save_chat_history(st.session_state["current_session_id"], st.session_state["messages"])
+        # Save at end
+        database_service.save_chat_history(st.session_state["current_session_id"], st.session_state["messages"])
+
+    with tab_style:
+        render_styleguide_tab()
 
 if __name__ == "__main__":
     main()
