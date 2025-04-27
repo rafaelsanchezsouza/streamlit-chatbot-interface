@@ -4,6 +4,7 @@ from chatbot.factories import LLMFactory, DatabaseFactory, FileSystemFactory
 from chatbot import utils
 from config import environment
 from components.styleguide_tab import render_styleguide_tab
+from components.context_tab import render_context_tab
 
 USER_AVATAR = "👤"
 BOT_AVATAR = "🤖"
@@ -27,11 +28,11 @@ def init_session_state(database_service):
     if "folder_path" not in st.session_state:
         st.session_state["folder_path"] = ""
 
-def show_sidebar(database_service, file_service):
+def show_sidebar(database_service):
     llm_service = get_llm_service()
     with st.sidebar:
         st.header("Chat")
-        selected_model = st.selectbox('Choose Model', models, index=0, key='selected_model')
+        st.selectbox('Choose Model', models, index=0, key='selected_model')
 
         if st.button("New Chat"):
             new_session_id = database_service.new_chat_session()
@@ -154,8 +155,6 @@ def get_llm_service():
     """Return a cached LLM service, re‑initializing only when
        st.session_state['selected_model'] changes."""
     selected = st.session_state.get("selected_model", models[0])
-    print("selected: ")
-    print(selected)
     # if we never made one, or the user just picked a new model:
     if (
        "llm_service" not in st.session_state
@@ -189,7 +188,7 @@ def main():
     unsafe_allow_html=True,
     )
     
-    tab_chat, tab_style = st.tabs(["Chat", "Style Guide"])
+    tab_chat, tab_style, tab_context = st.tabs(["Chat", "Style Guide", "Context"])
 
     database_service = DatabaseFactory.get_database_service(environment.settings.DATABASE_TYPE)
     file_service = FileSystemFactory.get_file_system("local")
@@ -198,7 +197,12 @@ def main():
     init_session_state(database_service)
 
     # --- Sidebar ---
-    show_sidebar(database_service, file_service)
+    show_sidebar(database_service)
+    
+
+    # --- Project Context ---
+    folder_path = st.session_state.get('folder_path', '')
+    st.session_state["project_context"] = get_all_files_context(folder_path, file_service)
 
     with tab_chat:
         # --- Chat window & Input ---
@@ -208,8 +212,6 @@ def main():
     if prompt:
         # Build project context based on current checkbox states
         project_context = []
-        folder_path = st.session_state.get('folder_path', '')
-        
         if st.session_state.get('append_file_structure', False):
             file_structure = get_file_structure_context(folder_path, file_service)
             project_context.append(file_structure)
@@ -219,8 +221,7 @@ def main():
             project_context.append(recent_files)
         
         if st.session_state.get('append_all_files', False):
-            all_files = get_all_files_context(folder_path, file_service)
-            project_context.append(all_files)
+            project_context.append(st.session_state["project_context"])
         
         # Combine all context sections
         combined_context = "\n\n".join(project_context)
@@ -244,6 +245,9 @@ def main():
 
     with tab_style:
         render_styleguide_tab()
+    
+    with tab_context:
+        render_context_tab()
 
 if __name__ == "__main__":
     main()
