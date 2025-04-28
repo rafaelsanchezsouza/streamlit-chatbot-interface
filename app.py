@@ -5,6 +5,7 @@ from chatbot import utils
 from config import environment
 from components.styleguide_tab import render_styleguide_tab
 from components.context_tab import render_context_tab
+from components.commit_tab import render_commit_tab
 
 USER_AVATAR = "👤"
 BOT_AVATAR = "🤖"
@@ -201,7 +202,7 @@ def main():
     unsafe_allow_html=True,
     )
     
-    tab_chat, tab_style, tab_context = st.tabs(["Chat", "Style Guide", "Context"])
+    tab_chat, tab_style, tab_commit, tab_context = st.tabs(["Chat", "Style Guide", "Commit", "Context"])
 
     database_service = DatabaseFactory.get_database_service(environment.settings.DATABASE_TYPE)
     file_service = FileSystemFactory.get_file_system("local")
@@ -262,6 +263,9 @@ def main():
 
     with tab_style:
         render_styleguide_tab()
+    
+    with tab_commit:
+        render_commit_tab()
     
     with tab_context:
         render_context_tab()
