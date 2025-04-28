@@ -1,1 +1,30 @@
-{}
+{
+  "layout_structure": [
+    {
+      "rule": "Method names must use camelCase",
+      "description": "In class definitions, method names should follow camelCase notation instead of snake_case.",
+      "examples": [
+        "def loadChatHistory(self, sessionId):",
+        "# bad: def load_chat_history(self, session_id):"
+      ]
+    },
+    {
+      "rule": "Parameter and local variable names must use camelCase",
+      "description": "Parameters and local variables should use camelCase to remain consistent with method naming.",
+      "examples": [
+        "sessionId = timestamp",
+        "# bad: session_id = timestamp"
+      ]
+    }
+  ],
+  "anti_patterns": [
+    {
+      "rule": "Using snake_case for method names",
+      "description": "Avoid snake_case for method names in class definitions; prefer camelCase."
+    },
+    {
+      "rule": "Using snake_case for parameters and variables",
+      "description": "Avoid snake_case for parameters and local variables; use camelCase naming instead."
+    }
+  ]
+}

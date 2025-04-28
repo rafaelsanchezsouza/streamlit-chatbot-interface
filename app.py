@@ -71,10 +71,10 @@ def show_sidebar(database_service):
                     st.error("Not found.")
 
         # Project/file-related toggles
-        # Project/file-related toggles
         st.session_state['append_file_structure'] = st.checkbox("Append File Structure")
         st.session_state['append_recent_files'] = st.checkbox("Append Recent Files")
         st.session_state['append_all_files'] = st.checkbox("Append All Files")
+        st.session_state['append_styleguide'] = st.checkbox("Append Styleguide")
 
         # Session selection
         session_ids = database_service.get_all_session_ids()  
@@ -113,6 +113,19 @@ def get_recent_files_context(folder_path, file_service):
     return ""
 
 def get_all_files_context(folder_path, file_service):
+    if os.path.isdir(folder_path):
+        files = file_service.get_all_files(folder_path)
+    else:
+        files = []
+    combined = ""
+    if files:
+        for file in files:
+            file_content = file_service.read_file_content(file)
+            combined += f"Content of {file}:\n\n{file_content}\n\n\n----\n\n"
+        return "Project Files:\n\n" + combined
+    return ""
+
+def get_styleguide(folder_path, file_service):
     if os.path.isdir(folder_path):
         files = file_service.get_all_files(folder_path)
     else:
@@ -203,6 +216,7 @@ def main():
     # --- Project Context ---
     folder_path = st.session_state.get('folder_path', '')
     st.session_state["project_context"] = get_all_files_context(folder_path, file_service)
+    st.session_state["styleguide"] = file_service.read_file_content("./styleguide.json")
 
     with tab_chat:
         # --- Chat window & Input ---
@@ -222,6 +236,9 @@ def main():
         
         if st.session_state.get('append_all_files', False):
             project_context.append(st.session_state["project_context"])
+        
+        if st.session_state.get('append_styleguide', False):
+            project_context.append(st.session_state["styleguide"])
         
         # Combine all context sections
         combined_context = "\n\n".join(project_context)

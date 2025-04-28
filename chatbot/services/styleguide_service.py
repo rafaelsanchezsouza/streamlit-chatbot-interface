@@ -13,11 +13,25 @@ class GitStyleGuideManager:
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     def _load_styleguide(self) -> Dict:
+        # Initialize default structure
+        default_styleguide = {
+            "layout_structure": [],
+            "anti_patterns": []
+        }
+        
         try:
             with open(self.styleguide_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            return {"layout_structure": [], "anti_patterns": []}
+                loaded_data = json.load(f)
+                
+                # Merge with defaults to preserve existing data
+                return {
+                    **default_styleguide,
+                    **loaded_data
+                }
+                
+        except (FileNotFoundError, json.JSONDecodeError):
+            # Return defaults if file is missing or invalid
+            return default_styleguide
 
     def _save_styleguide(self):
         with open(self.styleguide_path, "w", encoding="utf-8") as f:
@@ -37,18 +51,48 @@ class GitStyleGuideManager:
         
         return {"raw_diff": diff_text}
 
-    def update_styleguide(self):
+    def generate_styleguide_updates(self):
+        """Generate new style rules from diffs without saving."""
         processed_diffs = self._get_staged_diffs()
+        print("Analyzing Diffs")
         rules = self._analyze_diffs(processed_diffs)
-        self._add_layout_rule(json.loads(rules))
-        self._save_styleguide()
-        return {"status": "success", "added": len(processed_diffs)}
+        return rules
 
     def _analyze_diffs(self, diffs: List[Dict]):
         diffs_str = json.dumps(diffs, indent=2, ensure_ascii=False)
         styleguide_str = json.dumps(self.styleguide, indent=2, ensure_ascii=False)
-        prompt = "Based only on the git diff below and in the provided styleguide, return only a json with new rules for the styleguide. " + "Git Diff: " + diffs_str + "Styleguide: " + styleguide_str
-        
+        styleguide_structure = """
+            {
+                "layout_structure": [
+                {
+                    "rule": "rule title",
+                    "description": "rule description",
+                    "examples": [
+                    "examples"
+                    ]
+                },
+                {
+                    "rule": "rule title",
+                    "description": "rule description",
+                    "examples": [
+                    "examples"
+                    ]
+                }
+                ],
+                "anti_patterns": [
+                {
+                    "rule": "rule title",
+                    "description": "rule description"
+                },
+                {
+                    "rule": "rule title",
+                    "description": "rule description"
+                }
+                ]
+            }
+        """
+        prompt = "Based only on the git diff below and in the provided styleguide return a json with new rules for the styleguide. Format must be valid JSON only, without any wrapping text or code blocks. " + "Git Diff: " + diffs_str + "Styleguide: " + styleguide_str + "Use the following structure as reference: " + styleguide_structure
+   
         response = self.client.chat.completions.create(
             model="o4-mini",
             messages=[{"role": "user", "content": prompt}]
@@ -56,7 +100,10 @@ class GitStyleGuideManager:
         return response.choices[0].message.content
 
     def _add_layout_rule(self, rules: Dict):
-        existing_rules = [r["rule"] for r in self.styleguide["layout_structure"]]
-        for rule in rules["new_rules"]:
-            if rule not in existing_rules:
+        print("inside layout rules")
+        for rule in rules["layout_structure"]:
                 self.styleguide["layout_structure"].append(rule)
+        
+        for rule in rules["anti_patterns"]:
+                self.styleguide["anti_patterns"].append(rule)
+        

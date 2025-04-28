@@ -26,11 +26,35 @@ def render_styleguide_tab():
     with col1:
         if st.button("🔄 Auto-Update from Git Diffs"):
             try:
-                result = manager.update_styleguide()
-                st.success(f"Added {result['added']} new rules from staged changes!")
-                st.rerun()
+                # Generate new rules from diffs
+                new_rules_json = manager.generate_styleguide_updates()
+                new_rules = json.loads(new_rules_json)
+                
+                # Load current styleguide content
+                try:
+                    current_styleguide = json.loads(st.session_state["styleguide_text"])
+                except json.JSONDecodeError:
+                    st.error("Current styleguide is invalid JSON. Resetting to default.")
+                    current_styleguide = {"layout_structure": [], "anti_patterns": []}
+                
+                # Ensure structure exists
+                current_styleguide.setdefault("layout_structure", [])
+                current_styleguide.setdefault("anti_patterns", [])
+                
+                # Merge new rules
+                current_styleguide["layout_structure"].extend(new_rules.get("layout_structure", []))
+                current_styleguide["anti_patterns"].extend(new_rules.get("anti_patterns", []))
+                
+                # Update text area
+                st.session_state["styleguide_text"] = json.dumps(current_styleguide, indent=2)
+                
+                # Show success
+                added = len(new_rules.get("layout_structure", [])) + len(new_rules.get("anti_patterns", []))
+                st.success(f"Added {added} new rules. Review and click Save to apply!")
+            except json.JSONDecodeError as e:
+                st.error(f"Generated rules are invalid: {e}")
             except Exception as e:
-                st.error(f"Update failed: {str(e)}")
+                st.error(f"Auto-update failed: {str(e)}")
 
     # Existing editor functionality
     try:
