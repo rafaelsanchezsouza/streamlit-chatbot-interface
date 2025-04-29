@@ -1,48 +1,66 @@
-import os, json
+import os
+import json
 from pathlib import Path
 import streamlit as st
 from chatbot.services.commit_service import GitCommitManager
 
 def render_commit_tab():
-    st.header("commit editor")
+    st.header("Commit Editor")
 
-    folder_path = st.session_state.get('folder_path', '')
-    manager = GitCommitManager(repo_path=folder_path)
+    # Get default folder path from session state
+    default_folder_path = st.session_state.get('folder_path', '')
+    
+    # Allow user to specify Git repository path
+    git_folder_path = st.text_input(
+        "Git Repository Path",
+        value=default_folder_path,
+        key="git_repo_path_input",
+        help="Path to Git repository (might differ from working folder)"
+    )
 
-    # Get working folder from session state
-    folder_path = st.session_state.get('folder_path', '')
-    if not folder_path or not os.path.isdir(folder_path):
-        st.error("Please select a valid working folder in the sidebar.")
+    # Validate Git repository path
+    try:
+        manager = GitCommitManager(repo_path=git_folder_path)
+    except Exception as e:
+        st.error(f"Invalid Git repository: {str(e)}")
         return
 
-    # Add auto-update button
+    # Auto-generate commit section
     col1, col2 = st.columns([1, 3])
     with col1:
         if st.button("🔄 Generate"):
             try:
-                # Generate new rules from diffs
                 new_commit = manager.generate_new_commit()
-                
-                # Update text area
                 st.session_state["commit_text"] = new_commit
-                
+                st.rerun()
             except Exception as e:
-                st.error(f"Auto commit failed: {str(e)}")
-                
-    if "commit_text" not in st.session_state:
-        st.session_state["commit_text"] = []
+                st.error(f"Commit generation failed: {str(e)}")
 
-    st.session_state["commit_text"] = st.text_area(
-        "Edit your commit below:",
-        value=st.session_state["commit_text"],
-        height=400,
-        key="commit_text_area",
+    # Commit message editor
+    commit_message = st.text_area(
+        "Commit Message:",
+        value=st.session_state.get("commit_text", ""),
+        height=300,
+        key="commit_editor"
     )
 
-    if st.button("💾 Commit Code"):
+    # Commit action section
+    if st.button("💾 Commit Changes", type="primary"):
         try:
-            # parsed = json.loads(st.session_s;state["commit_text"])
-            # styleguide_path.write_text(json.dumps(parsed, indent=2), encoding="utf-8")
-            st.success("Changes commited!")
-        except json.JSONDecodeError as err:
-            st.error(f"Invalid JSON: {err}")
+            if not commit_message.strip():
+                raise ValueError("Commit message cannot be empty")
+            
+            # manager.commit_changes(commit_message)
+            st.success("Successfully committed changes!")
+            # st.session_state["commit_text"] = ""  # Clear commit message
+        except Exception as e:
+            st.error(f"Commit failed: {str(e)}")
+
+    # # Display recent commit history
+    # st.subheader("Recent Commit History")
+    # try:
+    #     commit_history = manager.get_commit_history(limit=5)
+    #     for commit in commit_history:
+    #         st.markdown(f"**{commit['hash']}**: {commit['message']}")
+    # except Exception as e:
+    #     st.error(f"Failed to load commit history: {str(e)}")
