@@ -4,7 +4,6 @@ from chatbot.factories import LLMFactory, DatabaseFactory, FileSystemFactory
 from chatbot import utils
 from config import environment
 from components.styleguide_tab import render_styleguide_tab
-from components.context_tab import render_context_tab
 from components.commit_tab import render_commit_tab
 
 USER_AVATAR = "👤"
@@ -202,7 +201,7 @@ def main():
     unsafe_allow_html=True,
     )
     
-    tab_chat, tab_style, tab_commit, tab_context = st.tabs(["Chat", "Style Guide", "Commit", "Context"])
+    tab_chat, tab_style, tab_commit = st.tabs(["Chat", "Style Guide", "Commit"])
 
     database_service = DatabaseFactory.get_database_service(environment.settings.DATABASE_TYPE)
     file_service = FileSystemFactory.get_file_system("local")
@@ -216,7 +215,6 @@ def main():
 
     # --- Project Context ---
     folder_path = st.session_state.get('folder_path', '')
-    st.session_state["project_context"] = get_all_files_context(folder_path, file_service)
     st.session_state["styleguide"] = file_service.read_file_content("./styleguide.json")
 
     with tab_chat:
@@ -236,7 +234,8 @@ def main():
             project_context.append(recent_files)
         
         if st.session_state.get('append_all_files', False):
-            project_context.append(st.session_state["project_context"])
+            all_files = get_all_files_context(folder_path, file_service)
+            project_context.append(all_files)
         
         if st.session_state.get('append_styleguide', False):
             project_context.append(st.session_state["styleguide"])
@@ -266,9 +265,6 @@ def main():
     
     with tab_commit:
         render_commit_tab()
-    
-    with tab_context:
-        render_context_tab()
 
 if __name__ == "__main__":
     main()
