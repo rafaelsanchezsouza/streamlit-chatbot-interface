@@ -30,8 +30,9 @@ def render_commit_tab():
     with col1:
         if st.button("🔄 Generate"):
             try:
-                new_commit = manager.generate_new_commit()
+                new_commit, diffs = manager.generate_new_commit()
                 st.session_state["commit_text"] = new_commit
+                st.session_state["diffs"] = diffs
                 st.rerun()
             except Exception as e:
                 st.error(f"Commit generation failed: {str(e)}")
@@ -42,6 +43,22 @@ def render_commit_tab():
         value=st.session_state.get("commit_text", ""),
         height=300,
         key="commit_editor"
+    )
+
+    if st.button("🟩🟥 Get Diff"):
+        try:
+            diffs = manager._get_staged_diffs()
+            st.session_state["diffs"] = diffs
+            st.rerun()
+        except Exception as e:
+            st.error(f"Diff get failed: {str(e)}")
+    
+    # Diff editor
+    st.text_area(
+        "Diffs:",
+        value=st.session_state.get("diffs", ""),
+        height=300,
+        key="diff_viewer"
     )
 
     # Commit action section

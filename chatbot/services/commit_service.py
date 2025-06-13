@@ -47,4 +47,4 @@ class GitCommitManager:
         processed_diffs = self._get_staged_diffs()
         print("Analyzing Diffs")
         rules = self._analyze_diffs(processed_diffs)
-        return rules
+        return rules, processed_diffs
