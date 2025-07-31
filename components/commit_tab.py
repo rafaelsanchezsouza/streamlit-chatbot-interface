@@ -25,12 +25,14 @@ def render_commit_tab():
         st.error(f"Invalid Git repository: {str(e)}")
         return
 
+    make_pt = st.checkbox("In portuguese", value=True)
+
     # Auto-generate commit section
     col1, col2 = st.columns([1, 3])
     with col1:
         if st.button("🔄 Generate"):
             try:
-                new_commit, diffs = manager.generate_new_commit()
+                new_commit, diffs = manager.generate_new_commit(in_portuguese=make_pt)
                 st.session_state["commit_text"] = new_commit
                 st.session_state["diffs"] = diffs
                 st.rerun()

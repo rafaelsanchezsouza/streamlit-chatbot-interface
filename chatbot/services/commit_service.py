@@ -37,20 +37,24 @@ class GitCommitManager:
             "b_path": diff.b_path
         }
 
-    def _analyze_diffs(self, diffs: List[Dict]):
+    def _analyze_diffs(self, diffs: List[Dict], in_portuguese: bool = True):
         diffs_str = json.dumps(diffs, indent=2, ensure_ascii=False)
         commit_structure = """
             <type>(<scope>): <short description>
-            (linha em branco)
-            <longer description> (opcional – explique o quê e por quê)
-            (linha em branco)
-            BREAKING CHANGE: <descrição da quebra> (opcional)
-            ISSUES CLOSED: #<número> (opcional)
+            (blank line)
+            <longer description> (optional – explain what and why)
+            (blank line)
+            BREAKING CHANGE: <breaking change description> (optional)
+            ISSUES CLOSED: #<number> (optional)
         """
         prompt = (
-            "Based only on the git diff below, please propose a commit that follows conventional commit rules and the following structure. "
-            "Return only the commit message, without any other comments. Make it in portuguese "
-            "Git Diff: " + diffs_str +
+        "Based only on the git diff below, please propose a commit that follows conventional commit rules and the following structure. "
+        "Return only the commit message, without any other comments."
+        )
+        if in_portuguese:
+            prompt += " Make it in portuguese"
+        prompt += (
+            " Git Diff: " + diffs_str +
             " Use the following structure as reference: " + commit_structure
         )
 
@@ -60,9 +64,9 @@ class GitCommitManager:
         )
         return response.choices[0].message.content
 
-    def generate_new_commit(self):
+    def generate_new_commit(self, in_portuguese: bool = True):
         """Generate new commit from diffs without saving."""
         processed_diffs = self._get_staged_diffs()
         print("Analyzing Diffs")
-        rules = self._analyze_diffs(processed_diffs)
+        rules = self._analyze_diffs(processed_diffs, in_portuguese)
         return rules, processed_diffs
