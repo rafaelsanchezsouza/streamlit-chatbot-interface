@@ -5,6 +5,12 @@ from typing import Dict, List
 from openai import OpenAI
 import os
 
+from typing import List, Dict
+import os
+from git import Repo
+import json
+# from openai import OpenAI # Uncomment if using the OpenAI client
+
 class GitCommitManager:
     def __init__(self, repo_path: str):
         self.repo = Repo(repo_path)
@@ -21,8 +27,15 @@ class GitCommitManager:
             ignore_blank_lines=True,
             ignore_space_at_eol=True
         ) if diff.a_blob and diff.b_blob else ""
-        
-        return {"raw_diff": diff_text}
+
+        diff_text = diff_text.encode("utf-8", "replace").decode("utf-8")    
+
+        # Add both a_path and b_path for context (handle renames)
+        return {
+            "raw_diff": diff_text,
+            "a_path": diff.a_path,
+            "b_path": diff.b_path
+        }
 
     def _analyze_diffs(self, diffs: List[Dict]):
         diffs_str = json.dumps(diffs, indent=2, ensure_ascii=False)
@@ -34,14 +47,19 @@ class GitCommitManager:
             BREAKING CHANGE: <descrição da quebra> (opcional)
             ISSUES CLOSED: #<número> (opcional)
         """
-        prompt = "Based only on the git diff below, please propose a commit that follows conventional commit rules and the following structure. Return only the commit message, without any other comments. " + "Git Diff: " + diffs_str + "Use the following structure as reference: " + commit_structure
-   
+        prompt = (
+            "Based only on the git diff below, please propose a commit that follows conventional commit rules and the following structure. "
+            "Return only the commit message, without any other comments. Make it in portuguese "
+            "Git Diff: " + diffs_str +
+            " Use the following structure as reference: " + commit_structure
+        )
+
         response = self.client.chat.completions.create(
             model="o4-mini",
             messages=[{"role": "user", "content": prompt}]
         )
         return response.choices[0].message.content
-    
+
     def generate_new_commit(self):
         """Generate new commit from diffs without saving."""
         processed_diffs = self._get_staged_diffs()

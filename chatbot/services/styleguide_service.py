@@ -49,6 +49,8 @@ class GitStyleGuideManager:
             ignore_space_at_eol=True
         ) if diff.a_blob and diff.b_blob else ""
         
+        diff_text = diff_text.encode("utf-8", "replace").decode("utf-8")
+
         return {"raw_diff": diff_text}
 
     def generate_styleguide_updates(self):
